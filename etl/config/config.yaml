@@ -1,0 +1,151 @@
+# ============================================================================
+# CONFIGURACIÓN DEL DATA WAREHOUSE - VENTAS
+# ============================================================================
+
+# Información del Proyecto
+project:
+  name: "LGL Data Warehouse"
+  version: "1.0.0"
+  description: "Data Warehouse para análisis de ventas"
+  environment: "development"  # development, staging, production
+
+# Configuración de Bases de Datos
+database:
+  source:
+    type: "mariadb"
+    host: "${SOURCE_DB_HOST}"
+    port: 3306
+    database: "${SOURCE_DB_NAME}"
+    charset: "utf8mb4"
+    
+  target:
+    type: "sqlserver"
+    host: "${TARGET_DB_HOST}"
+    port: 1433
+    database: "${TARGET_DB_NAME}"
+    driver: "ODBC Driver 17 for SQL Server"  # o "ODBC Driver 18 for SQL Server"
+    
+# Configuración del Proceso ETL
+etl:
+  # Modo de ejecución
+  mode: "incremental"  # full, incremental
+  
+  # Tamaño de lote para inserciones
+  batch_size: 1000
+  
+  # Número de días hacia atrás para carga incremental
+  lookback_days: 7
+  
+  # Reintentos en caso de error
+  max_retries: 3
+  retry_delay_seconds: 5
+  
+  # Timeout de queries (segundos)
+  query_timeout: 300
+  
+  # Paralelización
+  parallel_processes: 4
+  
+# Configuración de Dimensiones
+dimensions:
+  - name: "tiempo"
+    table_source: null  # Se genera, no se extrae
+    table_target: "dim_tiempo"
+    scd_type: 0
+    enabled: true
+    
+  - name: "cliente"
+    table_source: "clientes"
+    table_target: "dim_cliente"
+    scd_type: 2
+    enabled: true
+    
+  - name: "producto"
+    table_source: "productos"
+    table_target: "dim_producto"
+    scd_type: 2
+    enabled: true
+    
+  - name: "vendedor"
+    table_source: "users"
+    table_target: "dim_vendedor"
+    scd_type: 2
+    enabled: true
+    
+  - name: "tipo_documento"
+    table_source: "tipo_documentos"
+    table_target: "dim_tipo_documento"
+    scd_type: 0
+    enabled: true
+    
+  - name: "condicion_pago"
+    table_source: "condiciones_pago"
+    table_target: "dim_condicion_pago"
+    scd_type: 0
+    enabled: true
+    
+  - name: "estado_venta"
+    table_source: "estados_ventas"
+    table_target: "dim_estado_venta"
+    scd_type: 0
+    enabled: true
+    
+  - name: "ubicacion"
+    table_source: "municipios"
+    table_target: "dim_ubicacion"
+    scd_type: 0
+    enabled: true
+
+# Configuración de Tablas de Hechos
+facts:
+  - name: "ventas"
+    table_target: "fact_ventas"
+    enabled: true
+    aggregate_daily: true
+    
+# Configuración de Logs
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_to_file: true
+  log_to_console: true
+  log_directory: "logs"
+  log_filename: "etl_{date}.log"
+  rotation: "daily"  # daily, weekly, size
+  max_size_mb: 10
+  backup_count: 30
+  
+# Configuración de Notificaciones
+notifications:
+  enabled: false
+  email:
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    sender: "${NOTIFICATION_EMAIL}"
+    recipients:
+      - "admin@empresa.com"
+    on_success: false
+    on_error: true
+    
+# Configuración de Performance
+performance:
+  use_bulk_insert: true
+  enable_indexes_during_load: false
+  rebuild_indexes_after_load: true
+  update_statistics: true
+  
+# Validaciones
+validation:
+  enabled: true
+  check_row_counts: true
+  check_data_quality: true
+  tolerance_percentage: 5.0
+  
+# Programación
+schedule:
+  daily_etl_time: "02:00"
+  timezone: "America/El_Salvador"
+  
+# Fechas del Sistema
+dates:
+  start_date: "2020-01-01"
+  end_date: "2030-12-31"

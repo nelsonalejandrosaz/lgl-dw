@@ -1,0 +1,129 @@
+# ============================================================================
+# .gitignore - Data Warehouse Project
+# ============================================================================
+
+# Variables de Entorno
+.env
+.env.local
+.env.*.local
+
+# Archivos de Configuración con Credenciales
+etl/config/conexiones.yaml
+**/credentials.yaml
+**/secrets.yaml
+
+# Bases de Datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDEs
+# -----------------------------------------------------------------------------
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Power BI
+# -----------------------------------------------------------------------------
+*.pbix.tmp
+~$*.pbix
+
+# Temporal y Backup
+# -----------------------------------------------------------------------------
+*.bak
+*.tmp
+*.temp
+~$*
+*.swp
+*.swo
+*~
+
+# Archivos del Sistema
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Datos Sensibles
+# -----------------------------------------------------------------------------
+data/raw/
+data/backup/
+exports/
+*.csv
+*.xlsx
+*.xls
+
+# Excepciones (archivos que SÍ queremos versionar)
+!data/.gitkeep
+!logs/.gitkeep
+!powerbi/datasets/.gitkeep
+
+# Testing
+# -----------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentación
+# -----------------------------------------------------------------------------
+docs/_build/
+site/
+
+# Caché
+# -----------------------------------------------------------------------------
+*.cache
+.cache/
