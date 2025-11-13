@@ -30,24 +30,8 @@ BEGIN
 END
 GO
 
--- Crear base de datos
+-- Crear base de datos (SQL Server usará la ubicación por defecto)
 CREATE DATABASE LGL_DW
-    ON PRIMARY
-    (
-        NAME = N'LGL_DW_Data',
-        FILENAME = N'C:\SQLData\LGL_DW_Data.mdf',  -- Ajustar ruta según tu instalación
-        SIZE = 100MB,
-        MAXSIZE = UNLIMITED,
-        FILEGROWTH = 50MB
-    )
-    LOG ON
-    (
-        NAME = N'LGL_DW_Log',
-        FILENAME = N'C:\SQLData\LGL_DW_Log.ldf',   -- Ajustar ruta según tu instalación
-        SIZE = 50MB,
-        MAXSIZE = 2GB,
-        FILEGROWTH = 10MB
-    )
     COLLATE Modern_Spanish_CI_AS;  -- Collation para español
 GO
 
@@ -78,20 +62,54 @@ PRINT '  4. 04_crear_stored_procedures.sql';
 GO
 
 -- ============================================================================
--- CREAR ESQUEMA DE STAGING (Opcional - para proceso ETL)
+-- CREAR USUARIO PARA ETL Y POWER BI
 -- ============================================================================
 
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'staging')
+-- Crear login a nivel de servidor (ajustar contraseña)
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'etl_dw_user')
 BEGIN
-    EXEC('CREATE SCHEMA staging');
-    PRINT 'Schema staging creado exitosamente.';
+    CREATE LOGIN etl_dw_user WITH PASSWORD = 'ETL_DW_P@ssw0rd2024!',
+        CHECK_POLICY = OFF,
+        CHECK_EXPIRATION = OFF;
+    PRINT 'Login etl_dw_user creado exitosamente.';
 END
+GO
+
+-- Crear usuario en la base de datos
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'etl_dw_user')
+BEGIN
+    CREATE USER etl_dw_user FOR LOGIN etl_dw_user;
+    PRINT 'Usuario etl_dw_user creado en LGL_DW.';
+END
+GO
+
+-- Otorgar permisos de lectura y escritura
+ALTER ROLE db_datareader ADD MEMBER etl_dw_user;
+ALTER ROLE db_datawriter ADD MEMBER etl_dw_user;
+GO
+
+-- Otorgar permisos para ejecutar stored procedures
+GRANT EXECUTE TO etl_dw_user;
+GO
+
+-- Otorgar permisos ALTER para permitir TRUNCATE TABLE
+GRANT ALTER ON SCHEMA::dbo TO etl_dw_user;
+GO
+
+PRINT 'Permisos otorgados a etl_dw_user:';
+PRINT '  - Lectura (db_datareader)';
+PRINT '  - Escritura (db_datawriter)';
+PRINT '  - Ejecución de procedimientos almacenados';
+PRINT '  - ALTER en schema dbo (para TRUNCATE)';
+PRINT '';
+PRINT 'IMPORTANTE: Cambiar la contraseña del usuario etl_dw_user en producción.';
 GO
 
 -- ============================================================================
 -- INFORMACIÓN DE LA BASE DE DATOS
 -- ============================================================================
 
+-- Información de la base de datos
 SELECT 
     name AS 'Base de Datos',
     database_id AS 'ID',
@@ -103,4 +121,16 @@ SELECT
     (SELECT SUM(size) * 8 / 1024 FROM sys.master_files WHERE database_id = DB_ID('LGL_DW') AND type = 1) AS 'Tamaño Log (MB)'
 FROM sys.databases
 WHERE name = 'LGL_DW';
+GO
+
+-- Verificar usuario creado
+SELECT 
+    dp.name AS 'Usuario',
+    dp.type_desc AS 'Tipo',
+    STRING_AGG(r.name, ', ') AS 'Roles'
+FROM sys.database_principals dp
+LEFT JOIN sys.database_role_members drm ON dp.principal_id = drm.member_principal_id
+LEFT JOIN sys.database_principals r ON drm.role_principal_id = r.principal_id
+WHERE dp.name = 'etl_dw_user'
+GROUP BY dp.name, dp.type_desc;
 GO

@@ -16,12 +16,14 @@ IF OBJECT_ID('dbo.sp_poblar_dim_tiempo', 'P') IS NOT NULL
 GO
 
 CREATE PROCEDURE dbo.sp_poblar_dim_tiempo
-    @fecha_inicio DATE,
-    @fecha_fin DATE
+    @anio_inicio INT,
+    @anio_fin INT
 AS
 BEGIN
     SET NOCOUNT ON;
     
+    DECLARE @fecha_inicio DATE = CAST(@anio_inicio AS VARCHAR(4)) + '-01-01';
+    DECLARE @fecha_fin DATE = CAST(@anio_fin AS VARCHAR(4)) + '-12-31';
     DECLARE @v_fecha DATE = @fecha_inicio;
     DECLARE @v_anio INT;
     DECLARE @v_mes INT;

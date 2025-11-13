@@ -19,8 +19,11 @@ IF OBJECT_ID('dbo.dim_tiempo', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_tiempo (
+    -- Llave Primaria (Surrogate Key)
     tiempo_key INT IDENTITY(1,1) PRIMARY KEY,
-    fecha DATE NOT NULL UNIQUE,
+    
+    -- Atributos Descriptivos
+    fecha DATE NOT NULL UNIQUE,                -- Llave Natural (Business Key)
     anio INT NOT NULL,
     trimestre INT NOT NULL,
     mes INT NOT NULL,
@@ -32,6 +35,8 @@ CREATE TABLE dbo.dim_tiempo (
     es_fin_semana BIT NOT NULL,
     es_festivo BIT DEFAULT 0,
     periodo_fiscal VARCHAR(10) NOT NULL,
+    
+    -- Metadatos
     created_at DATETIME2 DEFAULT GETDATE()
 );
 
@@ -47,26 +52,30 @@ IF OBJECT_ID('dbo.dim_cliente', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_cliente (
+    -- Llave Primaria (Surrogate Key)
     cliente_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     cliente_id INT NOT NULL,
+    
+    -- Atributos Descriptivos
     nombre NVARCHAR(191) NOT NULL,
     nombre_alternativo NVARCHAR(191) NULL,
-    telefono_1 VARCHAR(25) NULL,
-    telefono_2 VARCHAR(25) NULL,
-    direccion NVARCHAR(255) NULL,
-    correo VARCHAR(100) NULL,
     nit VARCHAR(191) NULL,
     nrc VARCHAR(191) NULL,
-    giro NVARCHAR(191) NULL,
-    nombre_contacto NVARCHAR(191) NULL,
     retencion BIT DEFAULT 0,
+    
+    -- Atributos de Jerarquía Geográfica
     municipio NVARCHAR(191) NULL,
     departamento NVARCHAR(191) NULL,
-    -- Campos SCD Tipo 2
+    
+    -- Campos SCD Tipo 2 (Slowly Changing Dimension)
     fecha_inicio DATETIME2 NOT NULL DEFAULT GETDATE(),
     fecha_fin DATETIME2 NULL,
     version INT DEFAULT 1,
-    es_actual BIT DEFAULT 1,
+    es_actual BIT DEFAULT 1,                      -- 1 = Registro actual, 0 = Histórico
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -84,23 +93,35 @@ IF OBJECT_ID('dbo.dim_producto', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_producto (
+    -- Llave Primaria (Surrogate Key)
     producto_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     producto_id INT NOT NULL,
+    
+    -- Atributos Descriptivos
     nombre NVARCHAR(191) NOT NULL,
     nombre_alternativo NVARCHAR(191) NULL,
     codigo VARCHAR(50) NULL,
+    
+    -- Atributos de Jerarquía de Producto
     categoria_codigo VARCHAR(2) NULL,
     categoria_nombre VARCHAR(50) NULL,
     tipo_producto_codigo VARCHAR(2) NULL,
     tipo_producto_nombre VARCHAR(50) NULL,
     unidad_medida_nombre VARCHAR(50) NULL,
     unidad_medida_abreviatura VARCHAR(10) NULL,
+    
+    -- Indicadores
     producto_activo BIT DEFAULT 1,
-    -- Campos SCD Tipo 2
+    
+    -- Campos SCD Tipo 2 (Slowly Changing Dimension)
     fecha_inicio DATETIME2 NOT NULL DEFAULT GETDATE(),
     fecha_fin DATETIME2 NULL,
     version INT DEFAULT 1,
-    es_actual BIT DEFAULT 1,
+    es_actual BIT DEFAULT 1,                      -- 1 = Registro actual, 0 = Histórico
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -119,20 +140,25 @@ IF OBJECT_ID('dbo.dim_vendedor', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_vendedor (
+    -- Llave Primaria (Surrogate Key)
     vendedor_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     vendedor_id INT NOT NULL,
+    
+    -- Atributos Descriptivos
     nombre NVARCHAR(191) NOT NULL,
     apellido NVARCHAR(191) NULL,
     email VARCHAR(191) NULL,
     username VARCHAR(191) NULL,
-    telefono VARCHAR(20) NULL,
-    rol_id INT NULL,
-    rol_nombre VARCHAR(25) NULL,
-    -- Campos SCD Tipo 2
+    
+    -- Campos SCD Tipo 2 (Slowly Changing Dimension)
     fecha_inicio DATETIME2 NOT NULL DEFAULT GETDATE(),
     fecha_fin DATETIME2 NULL,
     version INT DEFAULT 1,
-    es_actual BIT DEFAULT 1,
+    es_actual BIT DEFAULT 1,                      -- 1 = Registro actual, 0 = Histórico
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -149,10 +175,17 @@ IF OBJECT_ID('dbo.dim_tipo_documento', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_tipo_documento (
+    -- Llave Primaria (Surrogate Key)
     tipo_documento_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     tipo_documento_id INT NOT NULL UNIQUE,
+    
+    -- Atributos Descriptivos
     codigo VARCHAR(10) NOT NULL,
     nombre VARCHAR(50) NOT NULL,
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -166,10 +199,17 @@ IF OBJECT_ID('dbo.dim_condicion_pago', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_condicion_pago (
+    -- Llave Primaria (Surrogate Key)
     condicion_pago_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     condicion_pago_id INT NOT NULL UNIQUE,
+    
+    -- Atributos Descriptivos
     codigo VARCHAR(10) NOT NULL,
     nombre VARCHAR(50) NOT NULL,
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -183,10 +223,17 @@ IF OBJECT_ID('dbo.dim_estado_venta', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_estado_venta (
+    -- Llave Primaria (Surrogate Key)
     estado_venta_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     estado_venta_id INT NOT NULL UNIQUE,
+    
+    -- Atributos Descriptivos
     codigo VARCHAR(10) NOT NULL,
     nombre VARCHAR(50) NOT NULL,
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
@@ -200,13 +247,20 @@ IF OBJECT_ID('dbo.dim_ubicacion', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.dim_ubicacion (
+    -- Llave Primaria (Surrogate Key)
     ubicacion_key INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Llave Natural (Business Key)
     municipio_id INT NOT NULL UNIQUE,
+    
+    -- Atributos de Jerarquía Geográfica
     municipio_nombre NVARCHAR(191) NOT NULL,
     departamento_id INT NOT NULL,
     departamento_nombre NVARCHAR(191) NOT NULL,
     departamento_isocode VARCHAR(6) NULL,
     zonesv_id INT NULL,
+    
+    -- Metadatos de Auditoría
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );

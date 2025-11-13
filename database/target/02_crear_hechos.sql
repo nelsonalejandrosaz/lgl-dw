@@ -43,28 +43,23 @@ CREATE TABLE dbo.fact_ventas (
     venta_total DECIMAL(12,4) NOT NULL DEFAULT 0.0,
     iva DECIMAL(12,4) NOT NULL DEFAULT 0.0,
     venta_total_con_impuestos DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    flete DECIMAL(12,4) DEFAULT 0.0,
-    
-    -- Métricas Semi-Aditivas
-    saldo DECIMAL(12,4) DEFAULT 0.0,
     
     -- Métricas Derivadas (calculadas)
     costo_venta DECIMAL(12,4) DEFAULT 0.0,
     margen_bruto DECIMAL(12,4) DEFAULT 0.0,
     porcentaje_margen DECIMAL(8,2) DEFAULT 0.0,
     
-    -- Indicadores
+    -- Indicadores de Estado (se actualizan cuando cambian en el sistema origen)
     es_venta_credito BIT DEFAULT 0,
-    tiene_comision BIT DEFAULT 0,
-    esta_liquidado BIT DEFAULT 0,
-    esta_anulado BIT DEFAULT 0,
+    esta_liquidado BIT DEFAULT 0,              -- Se actualiza cuando la venta se liquida
+    esta_anulado BIT DEFAULT 0,                -- Se actualiza cuando la venta se anula
     
-    -- Fechas relevantes
+    -- Fechas Relevantes
     fecha_venta DATE NOT NULL,
-    fecha_liquidacion DATE NULL,
-    fecha_anulacion DATE NULL,
+    fecha_liquidacion DATE NULL,               -- Fecha en que se completó el pago
+    fecha_anulacion DATE NULL,                 -- Fecha en que se anuló la venta
     
-    -- Metadatos
+    -- Metadatos de Auditoría
     fecha_carga DATETIME2 DEFAULT GETDATE(),
     fecha_actualizacion DATETIME2 DEFAULT GETDATE(),
     
@@ -108,58 +103,5 @@ CREATE NONCLUSTERED INDEX idx_fact_ventas_tiempo_vendedor
 -- CREATE COLUMNSTORE INDEX idx_fact_ventas_columnstore ON dbo.fact_ventas;
 GO
 
--- ============================================================================
--- TABLA DE HECHOS AGREGADA (para mejor performance)
--- ============================================================================
-
--- ----------------------------------------------------------------------------
--- Fact Table Agregada: Ventas por Día
--- ----------------------------------------------------------------------------
-IF OBJECT_ID('dbo.fact_ventas_diarias', 'U') IS NOT NULL
-    DROP TABLE dbo.fact_ventas_diarias;
-GO
-
-CREATE TABLE dbo.fact_ventas_diarias (
-    ventas_diarias_key BIGINT IDENTITY(1,1) PRIMARY KEY,
-    tiempo_key INT NOT NULL,
-    cliente_key INT NOT NULL,
-    producto_key INT NOT NULL,
-    vendedor_key INT NULL,
-    
-    -- Métricas Agregadas
-    cantidad_total DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    numero_transacciones INT NOT NULL DEFAULT 0,
-    venta_exenta_total DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    venta_gravada_total DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    venta_total DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    venta_total_con_impuestos DECIMAL(12,4) NOT NULL DEFAULT 0.0,
-    
-    -- Métricas Estadísticas
-    venta_promedio DECIMAL(12,4) DEFAULT 0.0,
-    venta_maxima DECIMAL(12,4) DEFAULT 0.0,
-    venta_minima DECIMAL(12,4) DEFAULT 0.0,
-    
-    fecha_proceso DATE NOT NULL,
-    fecha_carga DATETIME2 DEFAULT GETDATE(),
-    
-    CONSTRAINT fk_fact_ventas_dia_tiempo FOREIGN KEY (tiempo_key) 
-        REFERENCES dbo.dim_tiempo(tiempo_key),
-    CONSTRAINT fk_fact_ventas_dia_cliente FOREIGN KEY (cliente_key) 
-        REFERENCES dbo.dim_cliente(cliente_key),
-    CONSTRAINT fk_fact_ventas_dia_producto FOREIGN KEY (producto_key) 
-        REFERENCES dbo.dim_producto(producto_key),
-    CONSTRAINT fk_fact_ventas_dia_vendedor FOREIGN KEY (vendedor_key) 
-        REFERENCES dbo.dim_vendedor(vendedor_key),
-    
-    CONSTRAINT uk_ventas_diarias UNIQUE (tiempo_key, cliente_key, producto_key, vendedor_key)
-);
-GO
-
-CREATE NONCLUSTERED INDEX idx_fact_ventas_diarias_tiempo 
-    ON dbo.fact_ventas_diarias(tiempo_key);
-CREATE NONCLUSTERED INDEX idx_fact_ventas_diarias_fecha 
-    ON dbo.fact_ventas_diarias(fecha_proceso);
-GO
-
-PRINT 'Tablas de hechos creadas exitosamente';
+PRINT 'Tabla de hechos creada exitosamente';
 GO

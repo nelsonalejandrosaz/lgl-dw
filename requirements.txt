@@ -4,16 +4,11 @@
 
 # Conexión a Bases de Datos
 # -----------------------------------------------------------------------------
-# MariaDB/MySQL
+# MariaDB/MySQL (PyMySQL es puro Python, no requiere compiladores)
 PyMySQL==1.1.0
-mysqlclient==2.2.0
 
-# SQL Server
+# SQL Server (pyodbc requiere ODBC Driver 17 for SQL Server)
 pyodbc==5.0.1
-pymssql==2.2.11
-
-# SQLAlchemy (ORM y abstracción de BD)
-SQLAlchemy==2.0.23
 
 # Manipulación de Datos
 # -----------------------------------------------------------------------------
