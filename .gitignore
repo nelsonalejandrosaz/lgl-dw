@@ -8,9 +8,12 @@
 .env.*.local
 
 # Archivos de Configuración con Credenciales
-etl/config/conexiones.yaml
+etl/config/config.yaml
 **/credentials.yaml
 **/secrets.yaml
+
+# Excepciones: archivos de ejemplo SÍ se versionan
+!etl/config/config.yaml.example
 
 # Bases de Datos
 *.db
@@ -110,6 +113,9 @@ exports/
 !data/.gitkeep
 !logs/.gitkeep
 !powerbi/datasets/.gitkeep
+!scripts/setup/
+!scripts/exploracion/
+!scripts/mantenimiento/
 
 # Testing
 # -----------------------------------------------------------------------------

@@ -1,0 +1,29 @@
+# ============================================================================
+# CONFIGURACIÓN DE CONEXIONES - EJEMPLO
+# ============================================================================
+# 
+# INSTRUCCIONES:
+# 1. Copia este archivo como: config.yaml
+# 2. Reemplaza los valores con tus credenciales reales
+# 3. NO subas config.yaml a Git (ya está en .gitignore)
+#
+
+# Base de Datos Origen (MariaDB)
+source_db:
+  host: localhost
+  port: 3306
+  database: lgldb
+  user: root
+  password: TU_PASSWORD_MARIADB_AQUI
+  charset: utf8mb4
+
+# Base de Datos Destino (SQL Server)
+target_db:
+  server: localhost
+  port: 1433
+  database: LGL_DW
+  user: etl_dw_user
+  password: TU_PASSWORD_SQLSERVER_AQUI
+  driver: "ODBC Driver 17 for SQL Server"
+  trusted_connection: false
+  trust_server_certificate: true

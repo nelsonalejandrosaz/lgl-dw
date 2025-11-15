@@ -71,15 +71,9 @@ SELECT
     fv.venta_total,
     fv.iva,
     fv.venta_total_con_impuestos,
-    fv.flete,
-    fv.costo_venta,
-    fv.margen_bruto,
-    fv.porcentaje_margen,
-    fv.saldo,
     
     -- Indicadores
     fv.es_venta_credito,
-    fv.tiene_comision,
     fv.esta_liquidado,
     fv.esta_anulado,
     
@@ -93,13 +87,7 @@ SELECT
         WHEN fv.fecha_liquidacion IS NOT NULL 
         THEN DATEDIFF(DAY, fv.fecha_venta, fv.fecha_liquidacion)
         ELSE DATEDIFF(DAY, fv.fecha_venta, GETDATE())
-    END AS dias_desde_venta,
-    
-    CASE 
-        WHEN fv.es_venta_credito = 1 AND fv.esta_liquidado = 0 AND fv.saldo > 0
-        THEN 1 
-        ELSE 0 
-    END AS tiene_saldo_pendiente
+    END AS dias_desde_venta
     
 FROM dbo.fact_ventas fv
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
@@ -112,13 +100,13 @@ INNER JOIN dbo.dim_estado_venta dev ON fv.estado_venta_key = dev.estado_venta_ke
 GO
 
 -- ----------------------------------------------------------------------------
--- Vista para análisis de rentabilidad por producto
+-- Vista para análisis de productos más vendidos
 -- ----------------------------------------------------------------------------
-IF OBJECT_ID('dbo.v_rentabilidad_productos', 'V') IS NOT NULL
-    DROP VIEW dbo.v_rentabilidad_productos;
+IF OBJECT_ID('dbo.v_productos_vendidos', 'V') IS NOT NULL
+    DROP VIEW dbo.v_productos_vendidos;
 GO
 
-CREATE VIEW dbo.v_rentabilidad_productos AS
+CREATE VIEW dbo.v_productos_vendidos AS
 SELECT 
     dp.producto_id,
     dp.nombre AS producto,
@@ -129,14 +117,8 @@ SELECT
     dt.mes_nombre,
     COUNT(DISTINCT fv.venta_id) AS numero_ventas,
     SUM(fv.cantidad) AS cantidad_vendida,
-    SUM(fv.venta_total) AS venta_total,
-    SUM(fv.costo_venta) AS costo_total,
-    SUM(fv.margen_bruto) AS margen_bruto,
-    CASE 
-        WHEN SUM(fv.venta_total) > 0 
-        THEN (SUM(fv.margen_bruto) / SUM(fv.venta_total)) * 100 
-        ELSE 0 
-    END AS porcentaje_margen
+    SUM(fv.venta_total_con_impuestos) AS venta_total,
+    AVG(fv.precio_unitario) AS precio_promedio
 FROM dbo.fact_ventas fv
 INNER JOIN dbo.dim_producto dp ON fv.producto_key = dp.producto_key
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
@@ -169,13 +151,6 @@ SELECT
     dc.correo,
     COUNT(DISTINCT fv.venta_id) AS ventas_pendientes,
     SUM(fv.venta_total_con_impuestos) AS monto_total_credito,
-    SUM(fv.saldo) AS saldo_pendiente,
-    SUM(fv.venta_total_con_impuestos - fv.saldo) AS monto_pagado,
-    CASE 
-        WHEN SUM(fv.venta_total_con_impuestos) > 0 
-        THEN (SUM(fv.saldo) / SUM(fv.venta_total_con_impuestos)) * 100 
-        ELSE 0 
-    END AS porcentaje_pendiente,
     MIN(fv.fecha_venta) AS fecha_venta_mas_antigua,
     MAX(fv.fecha_venta) AS fecha_venta_mas_reciente,
     AVG(DATEDIFF(DAY, fv.fecha_venta, GETDATE())) AS dias_promedio_pendiente
@@ -184,7 +159,6 @@ INNER JOIN dbo.dim_cliente dc ON fv.cliente_key = dc.cliente_key
 WHERE fv.es_venta_credito = 1
     AND fv.esta_liquidado = 0
     AND fv.esta_anulado = 0
-    AND fv.saldo > 0
 GROUP BY 
     dc.cliente_id,
     dc.nombre,
@@ -213,9 +187,7 @@ SELECT
     COUNT(DISTINCT fv.venta_id) AS numero_ventas,
     COUNT(DISTINCT fv.cliente_key) AS clientes_atendidos,
     SUM(fv.venta_total_con_impuestos) AS venta_total,
-    AVG(fv.venta_total_con_impuestos) AS ticket_promedio,
-    SUM(fv.margen_bruto) AS margen_bruto_generado,
-    SUM(CASE WHEN fv.tiene_comision = 1 THEN fv.venta_total ELSE 0 END) AS ventas_con_comision
+    AVG(fv.venta_total_con_impuestos) AS ticket_promedio
 FROM dbo.fact_ventas fv
 INNER JOIN dbo.dim_vendedor dv ON fv.vendedor_key = dv.vendedor_key
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
@@ -249,8 +221,7 @@ SELECT
     COUNT(DISTINCT fv.venta_id) AS numero_ventas,
     SUM(fv.cantidad) AS cantidad_total,
     SUM(fv.venta_total_con_impuestos) AS venta_total,
-    AVG(fv.venta_total_con_impuestos) AS ticket_promedio,
-    SUM(fv.margen_bruto) AS margen_bruto
+    AVG(fv.venta_total_con_impuestos) AS ticket_promedio
 FROM dbo.fact_ventas fv
 INNER JOIN dbo.dim_cliente dc ON fv.cliente_key = dc.cliente_key
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
@@ -284,22 +255,9 @@ SELECT
     SUM(fv.venta_total_con_impuestos) AS venta_total,
     AVG(fv.venta_total_con_impuestos) AS ticket_promedio,
     
-    -- Métricas de rentabilidad
-    SUM(fv.costo_venta) AS costo_total,
-    SUM(fv.margen_bruto) AS margen_bruto,
-    CASE 
-        WHEN SUM(fv.venta_total) > 0 
-        THEN (SUM(fv.margen_bruto) / SUM(fv.venta_total)) * 100 
-        ELSE 0 
-    END AS porcentaje_margen,
-    
     -- Métricas por tipo de pago
     SUM(CASE WHEN fv.es_venta_credito = 1 THEN fv.venta_total_con_impuestos ELSE 0 END) AS ventas_credito,
     SUM(CASE WHEN fv.es_venta_credito = 0 THEN fv.venta_total_con_impuestos ELSE 0 END) AS ventas_contado,
-    
-    -- Métricas de cartera
-    SUM(fv.saldo) AS saldo_pendiente,
-    COUNT(DISTINCT CASE WHEN fv.saldo > 0 THEN fv.cliente_key END) AS clientes_con_saldo,
     
     -- Indicadores de estado
     SUM(CASE WHEN fv.esta_anulado = 1 THEN 1 ELSE 0 END) AS ventas_anuladas,
