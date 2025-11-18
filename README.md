@@ -53,11 +53,11 @@ sqlcmd -S localhost -E -i database/target/04_crear_stored_procedures.sql
 
 ### 5. Primera Carga
 ```bash
-python etl/load/load_dim_tiempo.py --anio-inicio 2020 --anio-fin 2025
+python etl/load/load_dim_tiempo.py --start-year 2018 --end-year 2024
 python etl/load/load_dim_static.py
-python etl/load/load_dim_cliente.py --modo full
-python etl/load/load_dim_producto.py --modo full
-python etl/load/load_dim_vendedor.py --modo full
+python etl/load/load_dim_cliente.py --mode full
+python etl/load/load_dim_producto.py --mode full
+python etl/load/load_dim_vendedor.py --mode full
 python etl/load/load_fact_ventas.py --truncate
 ```
 

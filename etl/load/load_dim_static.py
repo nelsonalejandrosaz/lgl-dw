@@ -218,12 +218,12 @@ def load_dim_ubicacion() -> bool:
                 SELECT 
                     m.id as municipio_id,
                     m.nombre as municipio_nombre,
-                    d.id as departamento_id,
-                    d.nombre as departamento_nombre,
+                    COALESCE(d.id, 0) as departamento_id,
+                    COALESCE(d.nombre, 'SIN ESPECIFICAR') as departamento_nombre,
                     d.isocode as departamento_isocode,
                     d.zonesv_id
                 FROM municipios m
-                INNER JOIN departamentos d ON m.departamento_id = d.id
+                LEFT JOIN departamentos d ON m.departamento_id = d.id
                 ORDER BY m.id
             """)
             rows = cursor.fetchall()

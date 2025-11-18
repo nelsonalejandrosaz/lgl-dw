@@ -40,7 +40,12 @@ SELECT
     dc.municipio,
     dc.departamento,
     dc.nit AS cliente_nit,
-    dc.telefono_1 AS cliente_telefono,
+    dc.fecha_primera_compra,
+    
+    -- Dimensión Ubicación
+    du.municipio_nombre AS ubicacion_municipio,
+    du.departamento_nombre AS ubicacion_departamento,
+    du.departamento_isocode,
     
     -- Dimensión Producto
     dp.nombre AS producto_nombre,
@@ -93,6 +98,7 @@ FROM dbo.fact_ventas fv
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
 INNER JOIN dbo.dim_cliente dc ON fv.cliente_key = dc.cliente_key
 INNER JOIN dbo.dim_producto dp ON fv.producto_key = dp.producto_key
+LEFT JOIN dbo.dim_ubicacion du ON fv.ubicacion_key = du.ubicacion_key
 LEFT JOIN dbo.dim_vendedor dv ON fv.vendedor_key = dv.vendedor_key
 INNER JOIN dbo.dim_tipo_documento dtd ON fv.tipo_documento_key = dtd.tipo_documento_key
 LEFT JOIN dbo.dim_condicion_pago dcp ON fv.condicion_pago_key = dcp.condicion_pago_key
@@ -147,8 +153,7 @@ SELECT
     dc.nombre AS cliente,
     dc.departamento,
     dc.municipio,
-    dc.telefono_1,
-    dc.correo,
+    dc.fecha_primera_compra,
     COUNT(DISTINCT fv.venta_id) AS ventas_pendientes,
     SUM(fv.venta_total_con_impuestos) AS monto_total_credito,
     MIN(fv.fecha_venta) AS fecha_venta_mas_antigua,
@@ -164,8 +169,7 @@ GROUP BY
     dc.nombre,
     dc.departamento,
     dc.municipio,
-    dc.telefono_1,
-    dc.correo;
+    dc.fecha_primera_compra;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -211,24 +215,26 @@ GO
 
 CREATE VIEW dbo.v_ventas_geografia AS
 SELECT 
-    dc.departamento,
-    dc.municipio,
+    du.departamento_nombre AS departamento,
+    du.municipio_nombre AS municipio,
+    du.departamento_isocode,
     dt.anio,
     dt.trimestre,
     dt.mes,
     dt.mes_nombre,
-    COUNT(DISTINCT dc.cliente_id) AS numero_clientes,
+    COUNT(DISTINCT fv.cliente_key) AS numero_clientes,
     COUNT(DISTINCT fv.venta_id) AS numero_ventas,
     SUM(fv.cantidad) AS cantidad_total,
     SUM(fv.venta_total_con_impuestos) AS venta_total,
     AVG(fv.venta_total_con_impuestos) AS ticket_promedio
 FROM dbo.fact_ventas fv
-INNER JOIN dbo.dim_cliente dc ON fv.cliente_key = dc.cliente_key
 INNER JOIN dbo.dim_tiempo dt ON fv.tiempo_key = dt.tiempo_key
+LEFT JOIN dbo.dim_ubicacion du ON fv.ubicacion_key = du.ubicacion_key
 WHERE fv.esta_anulado = 0
 GROUP BY 
-    dc.departamento,
-    dc.municipio,
+    du.departamento_nombre,
+    du.municipio_nombre,
+    du.departamento_isocode,
     dt.anio,
     dt.trimestre,
     dt.mes,

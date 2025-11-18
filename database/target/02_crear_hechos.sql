@@ -26,6 +26,7 @@ CREATE TABLE dbo.fact_ventas (
     cliente_key INT NOT NULL,
     producto_key INT NOT NULL,
     vendedor_key INT NULL,
+    ubicacion_key INT NULL,
     tipo_documento_key INT NOT NULL,
     condicion_pago_key INT NULL,
     estado_venta_key INT NOT NULL,
@@ -67,6 +68,8 @@ CREATE TABLE dbo.fact_ventas (
         REFERENCES dbo.dim_producto(producto_key),
     CONSTRAINT fk_fact_ventas_vendedor FOREIGN KEY (vendedor_key) 
         REFERENCES dbo.dim_vendedor(vendedor_key),
+    CONSTRAINT fk_fact_ventas_ubicacion FOREIGN KEY (ubicacion_key) 
+        REFERENCES dbo.dim_ubicacion(ubicacion_key),
     CONSTRAINT fk_fact_ventas_tipo_doc FOREIGN KEY (tipo_documento_key) 
         REFERENCES dbo.dim_tipo_documento(tipo_documento_key),
     CONSTRAINT fk_fact_ventas_condicion FOREIGN KEY (condicion_pago_key) 
@@ -81,6 +84,7 @@ CREATE NONCLUSTERED INDEX idx_fact_ventas_tiempo ON dbo.fact_ventas(tiempo_key);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_cliente ON dbo.fact_ventas(cliente_key);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_producto ON dbo.fact_ventas(producto_key);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_vendedor ON dbo.fact_ventas(vendedor_key);
+CREATE NONCLUSTERED INDEX idx_fact_ventas_ubicacion ON dbo.fact_ventas(ubicacion_key);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_fecha ON dbo.fact_ventas(fecha_venta);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_venta_id ON dbo.fact_ventas(venta_id);
 CREATE NONCLUSTERED INDEX idx_fact_ventas_estado ON dbo.fact_ventas(estado_venta_key);

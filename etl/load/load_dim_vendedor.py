@@ -30,8 +30,8 @@ def load_dim_vendedor_full() -> bool:
         source_conn = source_db.get_connection()
         source_cursor = source_conn.cursor()
         
-        # En la tabla clientes hay un campo vendedor_id que referencia a users
-        # Extraemos los vendedores únicos que tienen clientes asignados
+        # Extraemos vendedores que tienen ventas asignadas
+        # Prioridad: vendedor de orden_pedido, si no existe, vendedor de venta
         query = """
             SELECT DISTINCT
                 u.id as vendedor_id,
@@ -40,7 +40,12 @@ def load_dim_vendedor_full() -> bool:
                 u.email,
                 u.username
             FROM users u
-            INNER JOIN clientes c ON c.vendedor_id = u.id
+            WHERE u.id IN (
+                SELECT DISTINCT COALESCE(op.vendedor_id, v.vendedor_id)
+                FROM ventas v
+                LEFT JOIN orden_pedidos op ON v.orden_pedido_id = op.id
+                WHERE COALESCE(op.vendedor_id, v.vendedor_id) IS NOT NULL
+            )
             ORDER BY u.id
         """
         

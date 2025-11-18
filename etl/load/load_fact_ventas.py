@@ -46,6 +46,10 @@ def get_dimension_keys(target_cursor):
     target_cursor.execute("SELECT estado_venta_key, estado_venta_id FROM dbo.dim_estado_venta")
     dim_estado_venta = {row[1]: row[0] for row in target_cursor.fetchall()}
     
+    # dim_ubicacion: municipio_id -> ubicacion_key
+    target_cursor.execute("SELECT ubicacion_key, municipio_id FROM dbo.dim_ubicacion")
+    dim_ubicacion = {row[1]: row[0] for row in target_cursor.fetchall()}
+    
     log_success(f"Mapeos cargados: {len(dim_tiempo)} fechas, {len(dim_cliente)} clientes, " +
                 f"{len(dim_producto)} productos, {len(dim_vendedor)} vendedores")
     
@@ -56,7 +60,8 @@ def get_dimension_keys(target_cursor):
         'vendedor': dim_vendedor,
         'tipo_documento': dim_tipo_documento,
         'condicion_pago': dim_condicion_pago,
-        'estado_venta': dim_estado_venta
+        'estado_venta': dim_estado_venta,
+        'ubicacion': dim_ubicacion
     }
 
 
@@ -116,6 +121,8 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 v.fecha_liquidado,
                 -- Desde orden_pedidos
                 op.vendedor_id as op_vendedor_id,
+                -- Desde clientes (municipio para ubicacion_key)
+                c.municipio_id,
                 -- Desde salidas (detalle por producto)
                 s.id as salida_id,
                 s.cantidad,
@@ -125,6 +132,7 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 -- Producto: desde precios o producciones
                 COALESCE(pr.producto_id, prod.producto_id) as producto_id
             FROM ventas v
+            LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN orden_pedidos op ON v.orden_pedido_id = op.id
             LEFT JOIN salidas s ON s.orden_pedido_id = op.id
             LEFT JOIN precios pr ON s.precio_id = pr.id
@@ -173,6 +181,10 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 vendedor_id = row.get('op_vendedor_id') or row.get('vendedor_id')
                 vendedor_key = dim_keys['vendedor'].get(vendedor_id) if vendedor_id else None
                 
+                # Ubicacion desde municipio del cliente
+                municipio_id = row.get('municipio_id')
+                ubicacion_key = dim_keys['ubicacion'].get(municipio_id) if municipio_id else None
+                
                 tipo_documento_key = dim_keys['tipo_documento'].get(row['tipo_documento_id'])
                 condicion_pago_key = dim_keys['condicion_pago'].get(row['condicion_pago_id'])
                 estado_venta_key = dim_keys['estado_venta'].get(row['estado_venta_id'])
@@ -205,16 +217,16 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 # Insertar en fact_ventas
                 target_cursor.execute("""
                     INSERT INTO dbo.fact_ventas (
-                        tiempo_key, cliente_key, producto_key, vendedor_key,
+                        tiempo_key, cliente_key, producto_key, vendedor_key, ubicacion_key,
                         tipo_documento_key, condicion_pago_key, estado_venta_key,
                         venta_id, orden_pedido_id, numero_venta,
                         cantidad, precio_unitario, venta_exenta, venta_gravada,
                         venta_total, iva, venta_total_con_impuestos,
                         es_venta_credito, esta_liquidado, esta_anulado,
                         fecha_venta, fecha_liquidacion, fecha_anulacion, fecha_carga
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
                 """, (
-                    tiempo_key, cliente_key, producto_key, vendedor_key,
+                    tiempo_key, cliente_key, producto_key, vendedor_key, ubicacion_key,
                     tipo_documento_key, condicion_pago_key, estado_venta_key,
                     row['venta_id'], row['orden_pedido_id'], row['numero_venta'],
                     cantidad, precio_unitario, venta_exenta, venta_gravada,

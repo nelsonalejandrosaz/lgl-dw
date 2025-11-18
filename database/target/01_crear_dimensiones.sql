@@ -69,6 +69,9 @@ CREATE TABLE dbo.dim_cliente (
     municipio NVARCHAR(191) NULL,
     departamento NVARCHAR(191) NULL,
     
+    -- Métricas del Cliente
+    fecha_primera_compra DATE NULL,               -- Fecha de la primera venta del cliente
+    
     -- Campos SCD Tipo 2 (Slowly Changing Dimension)
     fecha_inicio DATETIME2 NOT NULL DEFAULT GETDATE(),
     fecha_fin DATETIME2 NULL,

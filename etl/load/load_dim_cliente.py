@@ -40,10 +40,14 @@ def load_dim_cliente_full() -> bool:
                 c.nrc,
                 c.retencion,
                 m.nombre as municipio,
-                d.nombre as departamento
+                d.nombre as departamento,
+                MIN(v.fecha) as fecha_primera_compra
             FROM clientes c
             LEFT JOIN municipios m ON c.municipio_id = m.id
             LEFT JOIN departamentos d ON m.departamento_id = d.id
+            LEFT JOIN ventas v ON c.id = v.cliente_id
+            GROUP BY c.id, c.nombre, c.nombre_alternativo, c.nit, c.nrc, 
+                     c.retencion, m.nombre, d.nombre
             ORDER BY c.id
         """
         
@@ -77,8 +81,9 @@ def load_dim_cliente_full() -> bool:
             target_cursor.execute("""
                 INSERT INTO dbo.dim_cliente (
                     cliente_id, nombre, nombre_alternativo, nit, nrc, retencion,
-                    municipio, departamento, fecha_inicio, fecha_fin, version, es_actual
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, 1, 1)
+                    municipio, departamento, fecha_primera_compra,
+                    fecha_inicio, fecha_fin, version, es_actual
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, 1, 1)
             """, (
                 row['cliente_id'],
                 clean_string(row['nombre']),
@@ -87,7 +92,8 @@ def load_dim_cliente_full() -> bool:
                 clean_string(row.get('nrc')),
                 row.get('retencion', 0),
                 clean_string(row.get('municipio')),
-                clean_string(row.get('departamento'))
+                clean_string(row.get('departamento')),
+                row.get('fecha_primera_compra')
             ))
             insert_count += 1
         
@@ -130,10 +136,14 @@ def load_dim_cliente_incremental() -> bool:
                 c.nrc,
                 c.retencion,
                 m.nombre as municipio,
-                d.nombre as departamento
+                d.nombre as departamento,
+                MIN(v.fecha) as fecha_primera_compra
             FROM clientes c
             LEFT JOIN municipios m ON c.municipio_id = m.id
             LEFT JOIN departamentos d ON m.departamento_id = d.id
+            LEFT JOIN ventas v ON c.id = v.cliente_id
+            GROUP BY c.id, c.nombre, c.nombre_alternativo, c.nit, c.nrc, 
+                     c.retencion, m.nombre, d.nombre
             ORDER BY c.id
         """
         
@@ -154,7 +164,7 @@ def load_dim_cliente_incremental() -> bool:
         target_cursor.execute("""
             SELECT 
                 cliente_id, nombre, nombre_alternativo, nit, nrc, retencion,
-                municipio, departamento, version
+                municipio, departamento, fecha_primera_compra, version
             FROM dbo.dim_cliente
             WHERE es_actual = 1
         """)
@@ -169,7 +179,8 @@ def load_dim_cliente_incremental() -> bool:
                 'retencion': row[5],
                 'municipio': row[6],
                 'departamento': row[7],
-                'version': row[8]
+                'fecha_primera_compra': row[8],
+                'version': row[9]
             }
         
         log_success(f"Encontrados {len(target_data)} registros actuales en DW")
@@ -194,7 +205,8 @@ def load_dim_cliente_incremental() -> bool:
                     clean_string(source_row.get('nrc')),
                     source_row.get('retencion', 0),
                     clean_string(source_row.get('municipio')),
-                    clean_string(source_row.get('departamento'))
+                    clean_string(source_row.get('departamento')),
+                    source_row.get('fecha_primera_compra')
                 )
                 target_vals = (
                     target_row['nombre'],
@@ -203,7 +215,8 @@ def load_dim_cliente_incremental() -> bool:
                     target_row['nrc'],
                     target_row['retencion'],
                     target_row['municipio'],
-                    target_row['departamento']
+                    target_row['departamento'],
+                    target_row['fecha_primera_compra']
                 )
                 
                 if source_vals != target_vals:
@@ -218,8 +231,9 @@ def load_dim_cliente_incremental() -> bool:
                 target_cursor.execute("""
                     INSERT INTO dbo.dim_cliente (
                         cliente_id, nombre, nombre_alternativo, nit, nrc, retencion,
-                        municipio, departamento, fecha_inicio, fecha_fin, version, es_actual
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, 1, 1)
+                        municipio, departamento, fecha_primera_compra,
+                        fecha_inicio, fecha_fin, version, es_actual
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, 1, 1)
                 """, (
                     row['cliente_id'],
                     clean_string(row['nombre']),
@@ -228,7 +242,8 @@ def load_dim_cliente_incremental() -> bool:
                     clean_string(row.get('nrc')),
                     row.get('retencion', 0),
                     clean_string(row.get('municipio')),
-                    clean_string(row.get('departamento'))
+                    clean_string(row.get('departamento')),
+                    row.get('fecha_primera_compra')
                 ))
             target_conn.commit()
         
@@ -247,8 +262,9 @@ def load_dim_cliente_incremental() -> bool:
                 target_cursor.execute("""
                     INSERT INTO dbo.dim_cliente (
                         cliente_id, nombre, nombre_alternativo, nit, nrc, retencion,
-                        municipio, departamento, fecha_inicio, fecha_fin, version, es_actual
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, ?, 1)
+                        municipio, departamento, fecha_primera_compra,
+                        fecha_inicio, fecha_fin, version, es_actual
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE), NULL, ?, 1)
                 """, (
                     source_row['cliente_id'],
                     clean_string(source_row['nombre']),
@@ -258,6 +274,7 @@ def load_dim_cliente_incremental() -> bool:
                     source_row.get('retencion', 0),
                     clean_string(source_row.get('municipio')),
                     clean_string(source_row.get('departamento')),
+                    source_row.get('fecha_primera_compra'),
                     current_version + 1
                 ))
             target_conn.commit()
