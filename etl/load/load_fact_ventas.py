@@ -130,13 +130,16 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 s.venta_exenta,
                 s.venta_gravada,
                 -- Producto: desde precios o producciones
-                COALESCE(pr.producto_id, prod.producto_id) as producto_id
+                COALESCE(pr.producto_id, prod.producto_id) as producto_id,
+                -- Costo del producto
+                p.costo as costo_producto
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN orden_pedidos op ON v.orden_pedido_id = op.id
             LEFT JOIN salidas s ON s.orden_pedido_id = op.id
             LEFT JOIN precios pr ON s.precio_id = pr.id
             LEFT JOIN producciones prod ON s.produccion_id = prod.id
+            LEFT JOIN productos p ON COALESCE(pr.producto_id, prod.producto_id) = p.id
             WHERE s.id IS NOT NULL  -- Solo ventas con detalle
         """
         
@@ -203,11 +206,17 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                 venta_gravada = float(row['venta_gravada'] or 0)
                 
                 # Según tu documentación:
-                # venta_total = venta_gravada * 1.13
+                # venta_total = venta_gravada + venta_exenta
                 # iva = venta_gravada * 0.13
-                venta_total = venta_gravada * 1.13
+                venta_total = venta_gravada + venta_exenta
                 iva = venta_gravada * 0.13
-                venta_total_con_impuestos = venta_gravada * 1.13
+                venta_total_con_impuestos = venta_total + iva
+                
+                # Calcular costo y margen
+                costo_unitario = float(row.get('costo_producto') or 0)
+                costo_total = cantidad * costo_unitario
+                margen_bruto = venta_total - costo_total
+                porcentaje_margen = (margen_bruto / venta_total * 100) if venta_total > 0 else 0
                 
                 # Estados de la venta
                 esta_liquidado = 1 if row['fecha_liquidado'] else 0
@@ -222,15 +231,17 @@ def load_fact_ventas(fecha_inicio: str = None, fecha_fin: str = None, truncate: 
                         venta_id, orden_pedido_id, numero_venta,
                         cantidad, precio_unitario, venta_exenta, venta_gravada,
                         venta_total, iva, venta_total_con_impuestos,
+                        costo_unitario, costo_total, margen_bruto, porcentaje_margen,
                         es_venta_credito, esta_liquidado, esta_anulado,
                         fecha_venta, fecha_liquidacion, fecha_anulacion, fecha_carga
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
                 """, (
                     tiempo_key, cliente_key, producto_key, vendedor_key, ubicacion_key,
                     tipo_documento_key, condicion_pago_key, estado_venta_key,
                     row['venta_id'], row['orden_pedido_id'], row['numero_venta'],
                     cantidad, precio_unitario, venta_exenta, venta_gravada,
                     venta_total, iva, venta_total_con_impuestos,
+                    costo_unitario, costo_total, margen_bruto, porcentaje_margen,
                     es_venta_credito, esta_liquidado, esta_anulado,
                     fecha_venta, row['fecha_liquidado'], row['fecha_anulado']
                 ))

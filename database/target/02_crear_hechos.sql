@@ -45,6 +45,12 @@ CREATE TABLE dbo.fact_ventas (
     iva DECIMAL(12,4) NOT NULL DEFAULT 0.0,
     venta_total_con_impuestos DECIMAL(12,4) NOT NULL DEFAULT 0.0,
     
+    -- Métricas de Costo y Margen
+    costo_unitario DECIMAL(12,4) NULL DEFAULT 0.0,
+    costo_total DECIMAL(12,4) NULL DEFAULT 0.0,
+    margen_bruto DECIMAL(12,4) NULL DEFAULT 0.0,
+    porcentaje_margen DECIMAL(8,2) NULL DEFAULT 0.0,
+    
     -- Indicadores de Estado (se actualizan cuando cambian en el sistema origen)
     es_venta_credito BIT DEFAULT 0,
     esta_liquidado BIT DEFAULT 0,              -- Se actualiza cuando la venta se liquida
